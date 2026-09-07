@@ -2,78 +2,8 @@
 #include <cstdint>
 #include <chrono>
 #include "using.h"
+#include "enums.h"
 
-enum class Side : char {
-    '1' = Buy,
-    '2' = Sell,
-    '5' = Short_Sell
-};
-
-enum class OrderType : char {
-    '1' = Market,
-    '2' = Limit,
-    '3' = Stop,
-    'P' = Pegged
-};
-
-enum class TimeInForce : char {
-    '0' = Day,
-    '1' = GTC,
-    '3' = IOC,
-    '4' = FOK
-};
-
-enum class SecurityIDSource : char {
-    '4' = ISIN,
-    '1' = CUSIP
-};
-
-struct Order {
-    OrderID id;
-    Price price;
-    Quantity qty;
-    Side side;
-    OrderType ot;
-    TimeInForce tif;
-
-    
-    Order* prev = nullptr;
-    Order* next = nullptr;
-};
-
-struct Limit {
-    Price price;
-    uint32_t total_volume{};
-
-    Order* head = nullptr;
-    Order* tail = nullptr;
-
-    void append(Order* order) {
-        if (!head) {
-            head = order;
-            tail = order;
-        } else {
-            tail->next = order;
-            order->prev = tail;
-            tail = order;
-        }
-        total_volume += order->qty;
-    }
-
-    void remove(Order* order) {
-        if (order->prev) order->prev->next = order->next;
-        if (order->next) order->next->prev = order->prev;
-
-        if (order == head) head = order->next;
-        if (order == tail) tail = order->prev;
-
-        total_volume -= order->qty;
-        order->prev = nullptr;
-        order->next = nullptr;
-    }
-
-    bool empty() const { return head == nullptr; }
-};
 
 class OrderBook {
     public:
@@ -202,6 +132,19 @@ class OrderBook {
             std::cout << std::format(" {} | Vol: {} | Orders: {} ", lmt.Price, lmt.total_volume, orderCount) << "\n";
         }
 
+        std::size_t orderBookSize() {
+            {
+                std::scoped_lock<std::mutex> lock(orderMut);
+
+                return order_index_.size();
+            }
+        }
+
+        
+
+
+
+
 
 
 
@@ -223,13 +166,13 @@ class OrderBook {
     private:
 
 
-        std::unordered_map<Price, std::unique_ptr<Limit>, std::greater<Price>> bids_;
-        std::unordered_map<Price, std::unique_ptr<Limit> asks_;
+        std::unordered_map<Price, std::unique_ptr<Limit>, std::greater<Price>> bids_; // prices in which buyer wants to buy
+        std::unordered_map<Price, std::unique_ptr<Limit> asks_; // prices a buyer willing to sell
 
-        std::unordered_map<OrderID, Order*> order_index_;
-        std::vector<std::unique_ptr<Order>> order_owner_;
+        std::unordered_map<OrderID, Order*> order_index_; //This structure handles fast indexing and lookups.
+        std::vector<std::unique_ptr<Order>> order_owner_; //This structure manages the lifetime and storage of all orders.
 
-        std::mutex obMut;
+        std::mutex obMut; // Mutex for order book operations
 
         OrderBook() {
             std::cout << "Initialized\n";
