@@ -64,6 +64,39 @@ public:
         level.volume += qty;
 	}
 
+    void delete_order(uint64_t id) {
+        auto lookup_id = id_to_pool_idx[id];
+        if (lookup_id == id_to_pool_idx.end()) return;
+
+        size_t pool_idx = lookup_id->second;
+        Order& order = order_pool[pool_idx];
+
+        if(!order.is_active) return;
+        order.is_active = false;
+
+        auto& side = order.is_buy() : bids_ ? asks_;
+        for (auto& level : side) {
+            if (level.price == order.price) {
+                auto it = std::find(level.order_ids.begin(), level.order_ids.end(), id);
+                if (it != level.order_ids.end()) {
+                    level.order_ids.erase(it);
+                    level.volume -= order.quantity;
+                }
+                break;
+            }
+        }
+        id_to_pool_idx.erase(lookup_id);
+        free_slots.push_back(pool_idx);
+    }
+
+    
+
+
+
+
+
+
+
     
 
 
