@@ -2,11 +2,73 @@
 #include <iosteam>
 #include <array>
 
+bool market_closed = false;
 
 struct PriceLevel {
 	uint32_t price;
 	uint32_t volume{};
 	std::vector<uint64_t> order_ids;
+};
+
+class PruneRingBuffer {
+private:
+    std::vector<uint64_t> order_ids_;
+    int capacity{};
+    int head;
+    int tail;
+    int size{};
+public:
+    PruneRingBuffer(int cap) : capacity(cap) {
+        buffer.resize(capacity);
+    }
+
+    bool enQueue(uint64_t id) {
+        if(isFull() {
+            return false;
+        }
+
+        buffer[head] = id;
+        head = (head + 1) % capacity;
+        size++;
+        return true;
+    }
+
+    bool deQueue() {
+        if (isEmpty()) {
+            return false;
+        }
+
+        int value = buffer[tail];
+        tail = (tail + 1) % capacity;
+        size--;
+        return true;
+    }
+
+    int front() {
+        if (isEmpty()) {
+            return 0;
+        }
+
+        return buffer.back();
+    }
+
+    int rear() {
+        if (isEmpty()) {
+            return 0;
+        }
+
+        size_t rear = (head + capacity - 1) % capacity;
+        return rear;
+    }
+
+    bool isEmpty() {
+        return size == 0;
+    }
+
+    bool isFull() {
+        return size == capacity;
+    }
+
 };
 
 
