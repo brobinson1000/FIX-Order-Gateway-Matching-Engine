@@ -51,7 +51,33 @@ public:
         auto& opp = is_buy ? asks_ : bids_;
 
         while(qty > 0 && !opp.empty()) {
+            PriceLevel& level = opp.front();
+            bool crosses = is_buy ? level.price <= price : level.price >= price;
+            if (!crosses) break;
 
+            while (qty > 0 && !level.order_ids.empty()) {
+                uint64_t maker_id = level.order_ids.front();
+                size_t idx = id_to_pool_idx[maker_id];
+                Order& maker = order_pool[idx];
+
+                uint32_t fill = std::min(maker.qty, qty);
+                qty -= fill;
+                maker.qty -= fill;
+                level.volume -= fill;
+
+                if (maker_qty == 0) {
+                    level.order_ids.pop_front();
+                    id_to_pool_idx.erase(maker_id);
+                    free_slots.push_back(idx);
+                }
+
+            }
+
+            if (level.order_ids.empty()) opp.erase(opp.begin());
+
+        }
+        return qty;
+    }
 
     void add_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy) {
         qty = match_order(id, price, qty, is_buy);
