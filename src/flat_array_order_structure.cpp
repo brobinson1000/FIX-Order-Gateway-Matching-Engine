@@ -10,67 +10,6 @@ struct PriceLevel {
 	std::vector<uint64_t> order_ids;
 };
 
-class PruneRingBuffer {
-private:
-    std::vector<uint64_t> order_ids_;
-    int capacity{};
-    int head;
-    int tail;
-    int size{};
-public:
-    PruneRingBuffer(int cap) : capacity(cap) {
-        buffer.resize(capacity);
-    }
-
-    bool enQueue(uint64_t id) {
-        if(isFull() {
-            return false;
-        }
-
-        buffer[head] = id;
-        head = (head + 1) % capacity;
-        size++;
-        return true;
-    }
-
-    bool deQueue() {
-        if (isEmpty()) {
-            return false;
-        }
-
-        int value = buffer[tail];
-        tail = (tail + 1) % capacity;
-        size--;
-        return true;
-    }
-
-    int front() {
-        if (isEmpty()) {
-            return 0;
-        }
-
-        return buffer.back();
-    }
-
-    int rear() {
-        if (isEmpty()) {
-            return 0;
-        }
-
-        size_t rear = (head + capacity - 1) % capacity;
-        return rear;
-    }
-
-    bool isEmpty() {
-        return size == 0;
-    }
-
-    bool isFull() {
-        return size == capacity;
-    }
-
-};
-
 
 class CacheFriendlyOrderBook {
 private:
@@ -107,6 +46,18 @@ public:
 			free_slots.push_back(i - 1);
 		}
 	}
+
+    void match_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy) {
+        auto& opp = is_buy ? asks_ : bids_;
+
+        while(qty > 0 && !opp.empty()) {
+
+
+    void add_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy) {
+        qty = match_order(id, price, qty, is_buy);
+
+        if (qty > 0) insert_order(id, price, qty, is_buy);
+    }
 
 	void insert_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy) {
 		if (free_slots.empty()) {
@@ -151,15 +102,9 @@ public:
         free_slots.push_back(pool_idx);
     }
 
-    
 
-
-
-
-
-
-
-    
 
 
 }
+
+
