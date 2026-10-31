@@ -4,16 +4,16 @@
 
 bool market_closed = false;
 
-enum class type {
+enum class Type {
     Limit,
     Market,
 };
 
-enum class time_in_force {
+enum class Time_In_Force {
     GTC, IOC, FOK, Day,
 };
 
-enum class status {
+enum class Status {
     Filled,
     PartiallyFilled,
     New,
@@ -21,17 +21,15 @@ enum class status {
     Rejected,
 };
 
-
-
 struct Order {
-    bool side;
-    char[2] status;
     uint64_t order_id;
     uint32_t original_qty;
     uint32_t filled_qty;
     uint32_t price;
+    Type type;
+    Time_In_Force tif;
+    Status status;
 };
-
 
 struct PriceLevel {
 	uint32_t price;
