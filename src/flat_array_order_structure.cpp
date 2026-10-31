@@ -4,6 +4,35 @@
 
 bool market_closed = false;
 
+enum class type {
+    Limit,
+    Market,
+};
+
+enum class time_in_force {
+    GTC, IOC, FOK, Day,
+};
+
+enum class status {
+    Filled,
+    PartiallyFilled,
+    New,
+    Cancelled, 
+    Rejected,
+};
+
+
+
+struct Order {
+    bool side;
+    char[2] status;
+    uint64_t order_id;
+    uint32_t original_qty;
+    uint32_t filled_qty;
+    uint32_t price;
+};
+
+
 struct PriceLevel {
 	uint32_t price;
 	uint32_t volume{};
