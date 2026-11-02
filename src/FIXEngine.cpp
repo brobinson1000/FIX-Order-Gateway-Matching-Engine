@@ -1,5 +1,6 @@
 #include <iostream>
 #include <charconv>
+#include <memory>
 #include "../include/Usings.h"
 
 // 8=FIX.4.40x019=1220x0135=D0x0134=1050x01...10=2340x01
@@ -24,7 +25,7 @@ struct FIXOrder {
 
 };
 
-void bitshift(std::string_view fixBits, FIXOrder fp) {
+void FIXDecode(std::string_view fixBits, std::unique_ptr<FIXOrder> fp) {
     const char* ptr = fixBits.data();
     const char* end = ptr + fixBits.size();
 
@@ -53,21 +54,21 @@ void bitshift(std::string_view fixBits, FIXOrder fp) {
 
         // extract each FIX field
         switch(tag) {
-            case 8: fp.Version = value; std::cout << value << "\n"; break;
-            case 9: std::from_chars(value.data(), value.data() + value.size(), fp.BodyLength); std::cout << "Success\n"; break;
-            case 35: fp.MsgType = value[0]; std::cout << value[0] << "\n"; break;
-            case 34: std::from_chars(value.data(), value.data() + value.size(), fp.MsgSeq); std::cout << "Success\n"; break;
-            case 49: fp.SenderCompId = value; std::cout << value << "\n"; break;
-            case 56: fp.TargetCompId = value; std::cout << value << "\n"; break;
-            case 52: fp.SendingTime = value; std::cout << value << "\n"; break;
-            case 11: fp.ClOrdId = value; std::cout << value << "\n"; break;
-            case 55: fp.Symbol = value; std::cout << value << "\n"; break;
-            case 54: fp.Side = value[0]; std::cout << value[0] << "\n"; break;
-            case 60: fp.TransactTime = value; std::cout << value << "\n"; break; // crashes here
-            case 38: std::from_chars(value.data(), value.data() + value.size(), fp.OrderQty); std::cout << "Success\n";break;
-            case 40: fp.OrdType = value[0]; std::cout << value[0] << "\n"; break;
-            case 44: std::from_chars(value.data(), value.data() + value.size(), fp.Price);std::cout << "Success\n"; break;
-            case 59: fp.Side = value[0]; std::cout <<  value[0] << "\n"; break;
+            case 8: fp->Version = value; std::cout << value << "\n"; break;
+            case 9: std::from_chars(value.data(), value.data() + value.size(), fp->BodyLength); std::cout << "Success\n"; break;
+            case 35: fp->MsgType = value[0]; std::cout << value[0] << "\n"; break;
+            case 34: std::from_chars(value.data(), value.data() + value.size(), fp->MsgSeq); std::cout << "Success\n"; break;
+            case 49: fp->SenderCompId = value; std::cout << value << "\n"; break;
+            case 56: fp->TargetCompId = value; std::cout << value << "\n"; break;
+            case 52: fp->SendingTime = value; std::cout << value << "\n"; break;
+            case 11: fp->ClOrdId = value; std::cout << value << "\n"; break;
+            case 55: fp->Symbol = value; std::cout << value << "\n"; break;
+            case 54: fp->Side = value[0]; std::cout << value[0] << "\n"; break;
+            case 60: fp->TransactTime = value; std::cout << value << "\n"; break; // crashes here
+            case 38: std::from_chars(value.data(), value.data() + value.size(), fp->OrderQty); std::cout << "Success\n";break;
+            case 40: fp->OrdType = value[0]; std::cout << value[0] << "\n"; break;
+            case 44: std::from_chars(value.data(), value.data() + value.size(), fp->Price);std::cout << "Success\n"; break;
+            case 59: fp->Side = value[0]; std::cout <<  value[0] << "\n"; break;
             default: std::cerr << "Error parsing FIX msg\n"; break;
         }
         ptr = SOHptr + 1;
@@ -77,7 +78,7 @@ void bitshift(std::string_view fixBits, FIXOrder fp) {
 
 
 int main() {
-    FIXOrder fo;
+    auto fo = std::make_unique<FIXOrder>();
     auto standardBtcBuyOrder = "8=FIX.4.4\001"
                            "9=178\001"
                            "35=D\001"
@@ -94,7 +95,7 @@ int main() {
                            "44=96500.00\001"              // Price limit in USDT
                            "59=1\001"                     // 1 = Good 'Till Cancelled (GTC)
                            "10=114\001";
-    bitshift(standardBtcBuyOrder, fo);
+    FIXDecode(standardBtcBuyOrder, std::move(fo));
     std::cout << "Hello";
 
 }
