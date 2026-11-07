@@ -9,7 +9,7 @@
 class TCPClient {
 public:
 
-    TCPClient(const char* FilePath) : TestingFilePath(FilePath) {}
+    TCPClient() : isConnected(false), clientSocket(-1) {}
     
     ~TCPClient() { disconnect(); }
 
@@ -48,14 +48,59 @@ public:
             return false;
         }
 
-        isConnect = true;
+        if (connect(clientSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+            std::cerr << "Connection failed\n";
+            close(clientSocket);
+            clientSocket = -1;
+            return false;
+        }
+
+        isConnected = true;
         return true;
     }
 
+    
+    bool SendFIXMsg(const std::string& message) {
+        if (!isConnected || clientSocket == -1) {
+            std::cerr << "Cannot connect to server\n";
+            return false;
+        }
 
+        const char* ptr = message.data();
+        ssize_t bytes_left = message.size();
 
+        while(bytes_left > 0) {
+            ssize_t bytes_sent = send(clientSocket, ptr, bytes_left, MSG_NOSIGNAL);
+            
+            if (bytes_sent < 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+
+                std::cerr << "Socket send error encountered\n";
+                disconnect();
+                return false;
+            } else if (bytes_sent == 0) {
+                std::cerr << "Server disconnected cleanly while sending.\n";
+                disconnect();
+                return false;
+            }
+
+            ptr += bytes_sent;
+            bytes_left -= bytes_sent;
+        }
+        return true;
+    }
+                
 
 private:
     int clientSocket;
     bool isConnected;
 };
+
+int main() {
+    TCPClient tcpc;
+    tcpc.ConnectToServer("127.0.0.1", 80);
+    std::string a = "ILOVEGOD";
+    tcpc.SendFIXMsg(std::move(a));
+}
