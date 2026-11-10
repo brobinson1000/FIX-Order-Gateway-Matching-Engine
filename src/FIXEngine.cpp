@@ -2,12 +2,13 @@
 #include <charconv>
 #include <memory>
 #include "../include/Usings.h"
-#include "../include/FIXEngine.h"
+//#include "../include/FIXEngine.h"
 
 // 8=FIX.4.40x019=1220x0135=D0x0134=1050x01...10=2340x01
 // 8=FIX.4.4|9=145|35=D|49=CLIENT_A|56=BINANCE|34=12|52=20261101-19:45:00|11=ORD12345|55=BTCUSDT|54=1|38=2|40=2|44=96500.00|10=182|
 
-void FIXDecode(std::string_view fixBits, std::unique_ptr<FIXOrder> fp) {
+std::optional<FIXOrder> FIXDecode(std::string_view fixBits) {
+    FIXOrder  fp{};
     const char* ptr = fixBits.data();
     const char* end = ptr + fixBits.size();
 
@@ -55,6 +56,7 @@ void FIXDecode(std::string_view fixBits, std::unique_ptr<FIXOrder> fp) {
         }
         ptr = SOHptr + 1;
     }
+    return fp;
 }
 
 
