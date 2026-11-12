@@ -1,0 +1,4 @@
+build/*
+src/a.out
+src/*.swp
+include/*.swp
