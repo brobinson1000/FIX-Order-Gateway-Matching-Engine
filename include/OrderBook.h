@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 #include <iostream>
 #include <array>
@@ -8,7 +9,7 @@
 #include "Order.h"
 #include "Using.h"
 
-bool market_closed = false;
+inline bool market_closed = false;
 
 struct PriceLevel {
 	uint32_t price;
@@ -26,12 +27,12 @@ private:
 	std::vector<PriceLevel> bids_;
 	std::vector<PriceLevel> asks_;
 
-	PriceLevel& find_or_create_price_level(std::vector<PriceLevel> side, uint32_t price, bool desc);
+	PriceLevel& find_or_create_price_level(std::vector<PriceLevel>& side, uint32_t price, bool desc);
 
 public:
 	CacheFriendlyOrderBook(size_t reserve_capacity = 10000);
 
-    void match_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
+    uint32_t match_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
 
     void add_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
 
@@ -40,5 +41,3 @@ public:
     void delete_order(uint64_t id);
 
 };
-
-
