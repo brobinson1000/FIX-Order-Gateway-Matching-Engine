@@ -1,5 +1,6 @@
 #include "OrderBook.h"
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <vector>
@@ -10,7 +11,7 @@
 #include "Using.h"
 
 PriceLevel& CacheFriendlyOrderBook::find_or_create_price_level(
-    std::vector<PriceLevel> side, uint32_t price, bool desc) {
+    std::vector<PriceLevel>& side, uint32_t price, bool desc) {
   auto it = std::find_if(side.begin(), side.end(),
                          [price](PriceLevel& pl) { return pl.price == price; });
 
@@ -22,7 +23,7 @@ PriceLevel& CacheFriendlyOrderBook::find_or_create_price_level(
   auto insert_pos =
       std::lower_bound(side.begin(), side.end(), new_level,
                        [desc](const PriceLevel& a, const PriceLevel& b) {
-                         return desc ? a.price < b.price : a.price > b.price;
+                         return desc ? a.price > b.price : a.price < b.price;
                        });
 
   return *side.insert(insert_pos, new_level);
@@ -31,13 +32,13 @@ PriceLevel& CacheFriendlyOrderBook::find_or_create_price_level(
 CacheFriendlyOrderBook::CacheFriendlyOrderBook(
     size_t reserve_capacity) {
   order_pools.resize(reserve_capacity);
-  free_slots.resize(reserve_capacity);
+  free_slots.reserve(reserve_capacity);
   for (size_t i = reserve_capacity; i > 0; i--) {
     free_slots.push_back(i - 1);
   }
 }
 
-void CacheFriendlyOrderBook::match_order(uint64_t id, uint32_t price,
+uint32_t CacheFriendlyOrderBook::match_order(uint64_t id, uint32_t price,
                                          uint32_t qty, bool is_buy) {
   auto& opp = is_buy ? asks_ : bids_;
 
@@ -57,9 +58,12 @@ void CacheFriendlyOrderBook::match_order(uint64_t id, uint32_t price,
       level.volume -= fill;
 
       if (maker.remainingQuantity_ == 0) {
-        level.order_ids.pop_front();
+        maker.status_ = Status::Filled;
+        level.order_ids.erase(level.order_ids.begin());
         id_to_pool_idx.erase(maker_id);
         free_slots.push_back(idx);
+      } else {
+        maker.status_ = Status::PartiallyFilled;
       }
     }
 
@@ -85,7 +89,8 @@ void CacheFriendlyOrderBook::insert_order(uint64_t id, uint32_t price,
   free_slots.pop_back();
 
   Order& order = order_pools[pool_idx];
-  order = Order{id, price, qty, is_buy, true, {}};
+  order = Order{id, qty, qty, price, TimeInForce::GTC, Status::New, Type::Limit,
+                is_buy ? Side::Buy : Side::Sell};
   id_to_pool_idx[id] = pool_idx;
 
   auto& side = is_buy ? bids_ : asks_;
@@ -95,23 +100,25 @@ void CacheFriendlyOrderBook::insert_order(uint64_t id, uint32_t price,
 }
 
 void CacheFriendlyOrderBook::delete_order(uint64_t id) {
-  auto lookup_id = id_to_pool_idx[id];
+  auto lookup_id = id_to_pool_idx.find(id);
   if (lookup_id == id_to_pool_idx.end()) return;
 
   size_t pool_idx = lookup_id->second;
   Order& order = order_pools[pool_idx];
 
-  if (order.status_ == Status::) return;
-  order.is_active = false;
+  if (order.status_ == Status::Cancelled) return;
+  order.status_ = Status::Cancelled;
 
   auto& side = (order.side_ == Side::Buy) ? bids_ : asks_;
-  for (auto& level : side) {
+  for (auto level_it = side.begin(); level_it != side.end(); ++level_it) {
+    auto& level = *level_it;
     if (level.price == order.price_) {
       auto it = std::find(level.order_ids.begin(), level.order_ids.end(), id);
       if (it != level.order_ids.end()) {
         level.order_ids.erase(it);
         level.volume -= order.remainingQuantity_;
       }
+      if (level.order_ids.empty()) side.erase(level_it);
       break;
     }
   }
