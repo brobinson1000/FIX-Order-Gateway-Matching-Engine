@@ -18,7 +18,6 @@ public:
     Type GetType() const { return type_; }
     Side GetSide() const { return side_; }
 
-private:
     OrderId orderId_;
     Quantity originalQuantity_;
     Quantity remainingQuantity_;
