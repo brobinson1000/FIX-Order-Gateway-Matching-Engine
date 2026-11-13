@@ -5,6 +5,8 @@
 class Order {
 public:
 
+    Order() = default;
+
     Order(OrderId orderId, Quantity originalQuantity, Quantity remainingQuantity, Price price, TimeInForce timeInForce, Status status, Type type, Side side) :   
         orderId_(orderId), originalQuantity_(originalQuantity), remainingQuantity_(remainingQuantity), price_(price), timeInForce_(timeInForce), status_(status), type_(type), side_(side) {}
 
@@ -18,13 +20,12 @@ public:
     Type GetType() const { return type_; }
     Side GetSide() const { return side_; }
 
-    OrderId orderId_;
-    Quantity originalQuantity_;
-    Quantity remainingQuantity_;
-    Price price_;
-    TimeInForce timeInForce_;
-    Status status_;
-    Type type_;
-    Side side_;
+    OrderId orderId_{};
+    Quantity originalQuantity_{};
+    Quantity remainingQuantity_{};
+    Price price_{};
+    TimeInForce timeInForce_{TimeInForce::GTC};
+    Status status_{Status::New};
+    Type type_{Type::Limit};
+    Side side_{Side::Buy};
 };
-
