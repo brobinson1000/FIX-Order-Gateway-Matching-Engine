@@ -5,6 +5,7 @@
 #include <iostream>
 #include <array>
 #include <unordered_map>
+#include <optional>
 #include "Enums.h"
 #include "Order.h"
 #include "Using.h"
@@ -32,12 +33,12 @@ private:
 public:
 	CacheFriendlyOrderBook(size_t reserve_capacity = 10000);
 
-    uint32_t match_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
+    std::optional<uint32_t> match_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
 
     void add_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
 
-	void insert_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
+	std::optional<size_t> insert_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
 
-    void delete_order(uint64_t id);
+    std::optional<uint64_t> delete_order(uint64_t id);
 
 };

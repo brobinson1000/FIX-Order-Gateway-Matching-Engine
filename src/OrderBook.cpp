@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <optional>
 
 #include "Enums.h"
 #include "Order.h"
@@ -38,14 +39,14 @@ CacheFriendlyOrderBook::CacheFriendlyOrderBook(
   }
 }
 
-uint32_t CacheFriendlyOrderBook::match_order(uint64_t id, uint32_t price,
-                                         uint32_t qty, bool is_buy) {
+std::optional<uint32_t> CacheFriendlyOrderBook::match_order([[maybe_unused]] uint64_t id, uint32_t price,
+                                             uint32_t qty, bool is_buy) {
   auto& opp = is_buy ? asks_ : bids_;
 
   while (qty > 0 && !opp.empty()) {
     PriceLevel& level = opp.front();
     bool crosses = is_buy ? level.price <= price : level.price >= price;
-    if (!crosses) break;
+    if (!crosses) return std::nullopt;
 
     while (qty > 0 && !level.order_ids.empty()) {
       uint64_t maker_id = level.order_ids.front();
@@ -79,10 +80,14 @@ void CacheFriendlyOrderBook::add_order(uint64_t id, uint32_t price,
   if (qty > 0) insert_order(id, price, qty, is_buy);
 }
 
-void CacheFriendlyOrderBook::insert_order(uint64_t id, uint32_t price,
+std::optional<size_t> CacheFriendlyOrderBook::insert_order(uint64_t id, uint32_t price,
                                           uint32_t qty, bool is_buy) {
   if (free_slots.empty()) {
-    return;
+    return std::nullopt;
+  }
+
+  if (id_to_pool_idx.contains(id)) {
+    return std::nullopt; 
   }
 
   size_t pool_idx = free_slots.back();
@@ -97,16 +102,17 @@ void CacheFriendlyOrderBook::insert_order(uint64_t id, uint32_t price,
   PriceLevel& level = find_or_create_price_level(side, price, is_buy);
   level.order_ids.push_back(id);
   level.volume += qty;
+  return pool_idx;
 }
 
-void CacheFriendlyOrderBook::delete_order(uint64_t id) {
+std::optional<uint64_t> CacheFriendlyOrderBook::delete_order(uint64_t id) {
   auto lookup_id = id_to_pool_idx.find(id);
-  if (lookup_id == id_to_pool_idx.end()) return;
+  if (lookup_id == id_to_pool_idx.end()) return std::nullopt;
 
   size_t pool_idx = lookup_id->second;
   Order& order = order_pools[pool_idx];
 
-  if (order.status_ == Status::Cancelled) return;
+  if (order.status_ == Status::Cancelled) return std::nullopt;
   order.status_ = Status::Cancelled;
 
   auto& side = (order.side_ == Side::Buy) ? bids_ : asks_;
@@ -124,4 +130,5 @@ void CacheFriendlyOrderBook::delete_order(uint64_t id) {
   }
   id_to_pool_idx.erase(lookup_id);
   free_slots.push_back(pool_idx);
+  return id;
 }
