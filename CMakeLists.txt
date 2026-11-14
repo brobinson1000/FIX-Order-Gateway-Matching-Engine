@@ -11,15 +11,15 @@ set(SOURCES
     src/OrderBook.cpp
 )
 
-add_executable(${PROJECT_NAME} ${SOURCES})
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.tar.gz
 )
+FetchContent_MakeAvailable(googletest)
 
-if(MSVC)
-    message(FATAL_ERROR "THIS PROJECT IS BEING RAN ON MSVC. PLEASE RECOMPILE ON LINUX")
-else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
-endif()
+enable_testing()
 
+add_executable(OrderBookTests tests/OrderBookTests.cpp src/OrderBook.cpp)
+target_include_directories(OrderBookTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(OrderBookTests PRIVATE GTest::gtest_main)
