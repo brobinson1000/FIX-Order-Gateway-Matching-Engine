@@ -33,7 +33,7 @@ private:
 public:
 	CacheFriendlyOrderBook(size_t reserve_capacity = 10000);
 
-    std::optional<uint32_t> match_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
+    uint32_t match_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
 
     void add_order(uint64_t id, uint32_t price, uint32_t qty, bool is_buy);
 
